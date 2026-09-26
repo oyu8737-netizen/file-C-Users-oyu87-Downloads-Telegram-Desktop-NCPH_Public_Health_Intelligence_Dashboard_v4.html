@@ -1,0 +1,60 @@
+// Tiny Room — Firestore хамгаалалтын дүрэм.
+//
+// Firebase Console → Firestore Database → Rules таб руу энэ файлын
+// БҮХ агуулгыг хуулж тавиад "Publish" дарна.
+//
+// Зарчим:
+//   - Өөрийн өгөгдлөө зөвхөн өөрөө өөрчилнө.
+//   - Өрөө, алхмыг чинь зөвхөн НАЙЗУУД чинь (болон admin) харна.
+//   - Нийт хэрэглэгчийн тоог зөвхөн admin (admins/{uid} баримттай хүн) тоолно.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    // uid хэрэглэгчийн найзын жагсаалтад намайг байгаа эсэх
+    function isFriendOf(uid) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
+    }
+
+    match /users/{uid} {
+      allow get: if isMe(uid) || isFriendOf(uid) || isAdmin();
+      // Олон хэрэглэгчийг зэрэг унших (статистик тоолох) — зөвхөн admin.
+      allow list: if isAdmin();
+      allow create, update: if isMe(uid);
+      allow delete: if false;
+
+      match /friends/{fid} {
+        allow read: if isMe(uid);
+        // Би өөрийн жагсаалтаа засна; найз маань кодоор намайг нэмэхдээ
+        // зөвхөн ӨӨРИЙГӨӨ миний жагсаалтад нэмж/хасч чадна.
+        allow create, update, delete: if isMe(uid) || isMe(fid);
+      }
+    }
+
+    match /friendCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /admins/{uid} {
+      // Хүн бүр зөвхөн "би admin мөн үү" гэдгээ шалгана.
+      // Admin-ийг зөвхөн Firebase Console-оос гараар нэмнэ.
+      allow get: if isMe(uid);
+      allow list, write: if false;
+    }
+  }
+}

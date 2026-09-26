@@ -1,7 +1,7 @@
 name: tiny_room
 description: "Tiny Room — алхах тусам өрөө чинь томордог жижигхэн апп."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -9,8 +9,21 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Coin, тавилга, өрөөний байдлыг утсан дээрээ хадгалах (local database).
+
+  # Утсан дээр хадгалах (coin, тавилга, хэл).
   shared_preferences: ^2.2.3
+
+  # Firebase: account, найзууд, cloud хадгалалт, хэрэглэгчийн статистик.
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
+  firebase_analytics: ^12.6.0
+
+  # Алхам: iPhone → HealthKit, Android → Health Connect.
+  health: ^13.3.2
+  # Health Connect байхгүй Android утсанд утасны өөрийн мэдрэгчээр тоолох.
+  pedometer: ^4.2.0
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:

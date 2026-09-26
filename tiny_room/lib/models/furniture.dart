@@ -3,7 +3,8 @@ enum UnlockType { none, streak, totalSteps, level }
 
 class Furniture {
   final String id;
-  final String name;
+  final String nameMn;
+  final String nameEn;
   final String emoji;
   final int price;
   final UnlockType unlockType;
@@ -11,38 +12,30 @@ class Furniture {
 
   const Furniture({
     required this.id,
-    required this.name,
+    required this.nameMn,
+    required this.nameEn,
     required this.emoji,
     required this.price,
     this.unlockType = UnlockType.none,
     this.unlockValue = 0,
   });
 
-  /// Түгжээтэй үед харуулах тайлбар.
-  String get requirementText {
-    switch (unlockType) {
-      case UnlockType.none:
-        return '';
-      case UnlockType.streak:
-        return '$unlockValue хоног дараалан идэвхтэй';
-      case UnlockType.totalSteps:
-        return 'Нийт $unlockValue алхам';
-      case UnlockType.level:
-        return 'Level $unlockValue';
-    }
-  }
+  String name(bool mongolian) => mongolian ? nameMn : nameEn;
 }
 
 /// Дэлгүүрт байгаа бүх тавилга.
+/// Шинэ тавилга нэмэх бол энд нэг мөр нэмэхэд л хангалттай.
 const List<Furniture> furnitureCatalog = [
-  Furniture(id: 'chair', name: 'Сандал', emoji: '🪑', price: 100),
-  Furniture(id: 'picture', name: 'Зураг', emoji: '🖼️', price: 120),
-  Furniture(id: 'plant', name: 'Ургамал', emoji: '🪴', price: 150),
-  Furniture(id: 'lamp', name: 'Гэрэл', emoji: '💡', price: 200),
-  Furniture(id: 'table', name: 'Ширээ', emoji: '🪵', price: 250),
+  Furniture(id: 'chair', nameMn: 'Сандал', nameEn: 'Chair', emoji: '🪑', price: 100),
+  Furniture(id: 'picture', nameMn: 'Зураг', nameEn: 'Picture', emoji: '🖼️', price: 120),
+  Furniture(id: 'plant', nameMn: 'Ургамал', nameEn: 'Plant', emoji: '🪴', price: 150),
+  Furniture(id: 'lamp', nameMn: 'Гэрэл', nameEn: 'Lamp', emoji: '💡', price: 200),
+  Furniture(id: 'table', nameMn: 'Ширээ', nameEn: 'Table', emoji: '🪵', price: 250),
+  Furniture(id: 'teddy', nameMn: 'Баавгай', nameEn: 'Teddy', emoji: '🧸', price: 180),
   Furniture(
     id: 'sofa',
-    name: 'Буйдан',
+    nameMn: 'Буйдан',
+    nameEn: 'Sofa',
     emoji: '🛋️',
     price: 300,
     unlockType: UnlockType.streak,
@@ -50,7 +43,8 @@ const List<Furniture> furnitureCatalog = [
   ),
   Furniture(
     id: 'bookshelf',
-    name: 'Номын тавиур',
+    nameMn: 'Номын тавиур',
+    nameEn: 'Bookshelf',
     emoji: '📚',
     price: 400,
     unlockType: UnlockType.level,
@@ -58,7 +52,8 @@ const List<Furniture> furnitureCatalog = [
   ),
   Furniture(
     id: 'bed',
-    name: 'Ор',
+    nameMn: 'Ор',
+    nameEn: 'Bed',
     emoji: '🛏️',
     price: 500,
     unlockType: UnlockType.totalSteps,
@@ -66,7 +61,8 @@ const List<Furniture> furnitureCatalog = [
   ),
   Furniture(
     id: 'aquarium',
-    name: 'Аквариум',
+    nameMn: 'Аквариум',
+    nameEn: 'Aquarium',
     emoji: '🐠',
     price: 800,
     unlockType: UnlockType.streak,
@@ -74,5 +70,23 @@ const List<Furniture> furnitureCatalog = [
   ),
 ];
 
-Furniture furnitureById(String id) =>
-    furnitureCatalog.firstWhere((f) => f.id == id);
+Furniture? furnitureById(String id) {
+  for (final f in furnitureCatalog) {
+    if (f.id == id) return f;
+  }
+  return null;
+}
+
+/// Тавилгын будах өнгөнүүд (null = анхны өнгө).
+const List<int?> furniturePalette = [
+  null,
+  0xFFE57373, // улаан
+  0xFFFFB74D, // улбар шар
+  0xFFFFF176, // шар
+  0xFF81C784, // ногоон
+  0xFF4FC3F7, // цэнхэр
+  0xFF9575CD, // ягаан-нил
+  0xFFF06292, // ягаан
+  0xFF8D6E63, // бор
+  0xFF90A4AE, // саарал
+];

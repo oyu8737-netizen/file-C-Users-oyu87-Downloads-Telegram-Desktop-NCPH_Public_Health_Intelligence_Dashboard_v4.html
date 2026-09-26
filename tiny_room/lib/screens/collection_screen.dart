@@ -2,38 +2,41 @@ import 'package:flutter/material.dart';
 
 import '../models/furniture.dart';
 import '../state/game_state.dart';
+import '../state/settings_state.dart';
 
-class CollectionScreen extends StatelessWidget {
-  const CollectionScreen({super.key});
+/// Цуглуулсан бүх тавилга (Shop дэлгэцийн хоёр дахь таб).
+class CollectionGrid extends StatelessWidget {
+  const CollectionGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
+    final s = SettingsScope.strings(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('FURNITURE  ${game.owned.length}/${furnitureCatalog.length}'),
-        centerTitle: true,
-      ),
-      body: GridView.count(
-        padding: const EdgeInsets.all(16),
-        crossAxisCount: 3,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        children: [
-          for (final f in furnitureCatalog)
-            _CollectionCard(furniture: f, owned: game.isOwned(f)),
-        ],
-      ),
+    return GridView.count(
+      padding: const EdgeInsets.all(16),
+      crossAxisCount: 3,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      children: [
+        for (final f in furnitureCatalog)
+          _CollectionCard(
+            furniture: f,
+            name: f.name(s.mn),
+            owned: game.isOwned(f),
+          ),
+      ],
     );
   }
 }
 
 class _CollectionCard extends StatelessWidget {
   final Furniture furniture;
+  final String name;
   final bool owned;
 
-  const _CollectionCard({required this.furniture, required this.owned});
+  const _CollectionCard(
+      {required this.furniture, required this.name, required this.owned});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +51,7 @@ class _CollectionCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            owned ? '✓ ${furniture.name}' : furniture.name,
+            owned ? '✓ $name' : name,
             textAlign: TextAlign.center,
             style: TextStyle(color: owned ? null : Colors.grey),
           ),

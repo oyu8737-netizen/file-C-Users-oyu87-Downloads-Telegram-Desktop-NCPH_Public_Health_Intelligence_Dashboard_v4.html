@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,121 +7,222 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/furniture.dart';
 import '../models/placed_item.dart';
 
-/// Алхалт 1 coin болох харьцаа: 100 алхам = 1 coin (8,000 алхам → 80 coin).
+// ───────────────────────── Тоглоомын дүрэм ─────────────────────────
+// Эдгээр тоог өөрчилбөл бүх апп даяар дүрэм өөрчлөгдөнө.
+
+/// 100 алхам = 1 coin (8,000 алхам → 80 coin).
 const int stepsPerCoin = 100;
 
 /// Өдрийн зорилго. Үүнд хүрсэн өдөр streak-д тооцогдоно.
 const int dailyStepGoal = 5000;
 
+/// Өдрийн зорилгодоо хүрэхэд өгөх bonus coin.
+const int goalBonusCoins = 20;
+
+/// Streak-ийн өдөр бүрт нэмэлт bonus: streak × 5 (дээд тал нь 50).
+const int streakBonusPerDay = 5;
+const int streakBonusCap = 50;
+
 /// Нэг level ахихад шаардагдах алхам.
 const int stepsPerLevel = 10000;
+
+/// Хэдэн өдрийн түүх хадгалах вэ.
+const int historyDays = 60;
+
+/// Нэг өдрийн бүртгэл.
+class DayRecord {
+  int steps;
+
+  /// Энэ өдрийн алхмаас аль хэдийн олгосон coin (давхар өгөхгүйн тулд).
+  int coinsFromSteps;
+
+  /// Өдрийн зорилгын bonus олгосон эсэх.
+  bool goalBonusGiven;
+
+  DayRecord({this.steps = 0, this.coinsFromSteps = 0, this.goalBonusGiven = false});
+
+  bool get goalReached => steps >= dailyStepGoal;
+
+  Map<String, dynamic> toJson() =>
+      {'s': steps, 'c': coinsFromSteps, 'g': goalBonusGiven};
+
+  factory DayRecord.fromJson(Map<String, dynamic> j) => DayRecord(
+        steps: (j['s'] as num?)?.toInt() ?? 0,
+        coinsFromSteps: (j['c'] as num?)?.toInt() ?? 0,
+        goalBonusGiven: j['g'] as bool? ?? false,
+      );
+}
+
+/// Нэг удаагийн алхам шинэчлэлтээр юу олж авсныг UI-д мэдэгдэх.
+class SyncResult {
+  int newSteps = 0;
+  int stepCoins = 0;
+  int goalBonus = 0;
+  int streakBonus = 0;
+  final List<Furniture> unlocked = [];
+
+  int get totalCoins => stepCoins + goalBonus + streakBonus;
+  bool get isEmpty => newSteps == 0;
+}
 
 /// Тоглоомын бүх өгөгдөл ба логик энд байна.
 /// UI нь зөвхөн эндээс уншаад, эндэх method-уудыг дуудна.
 class GameState extends ChangeNotifier {
-  static const _storageKey = 'tiny_room_state_v1';
+  static const _storageKey = 'tiny_room_state_v2';
+  static const _legacyKey = 'tiny_room_state_v1';
 
   final SharedPreferences? _prefs;
   final DateTime Function() _clock;
 
   int coins = 0;
   int totalSteps = 0;
-  int todaySteps = 0;
 
-  /// Өнөөдөр алхалтаас аль хэдийн олгосон coin.
-  /// Incremental reward: зөвхөн шинээр нэмэгдсэн алхамд coin өгнө.
-  int coinsRewardedToday = 0;
+  /// Өдөр бүрийн алхам. Түлхүүр нь 'yyyy-mm-dd'.
+  final Map<String, DayRecord> days = {};
 
-  int streak = 0;
-  String? lastGoalDate;
-  late String todayDate;
-
-  /// Туршилтад зориулж "маргааш" руу үсрэх (Level 1 prototype-д хэрэгтэй).
+  /// Туршилтад зориулж "маргааш" руу үсрэх.
   int debugDayOffset = 0;
 
   final Set<String> owned = {};
   final List<PlacedItem> placed = [];
 
+  /// Сүүлд өөрчлөгдсөн цаг (cloud-тай харьцуулахад).
+  int updatedAt = 0;
+
   GameState({SharedPreferences? prefs, DateTime Function()? clock})
       : _prefs = prefs,
-        _clock = clock ?? DateTime.now {
-    todayDate = _dateKey(_now());
-  }
+        _clock = clock ?? DateTime.now;
 
   static Future<GameState> load() async {
     final prefs = await SharedPreferences.getInstance();
     final state = GameState(prefs: prefs);
     final raw = prefs.getString(_storageKey);
     if (raw != null) {
-      state._fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      state.loadJson(jsonDecode(raw) as Map<String, dynamic>, save: false);
+    } else {
+      state._migrateV1(prefs.getString(_legacyKey));
     }
-    state._rollDayIfNeeded();
     return state;
   }
 
-  // ───────────────────────── Алхалт → Coin ─────────────────────────
+  // ───────────────────────── Огноо ─────────────────────────
 
-  /// Утаснаас (эсвэл fake товчноос) ирсэн "өнөөдрийн нийт алхам"-ыг хүлээж авна.
-  /// HealthKit / Health Connect нь яг ийм байдлаар өдрийн нийлбэр буцаадаг.
+  DateTime now() => _clock().add(Duration(days: debugDayOffset));
+
+  static String dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String get todayKey => dateKey(now());
+
+  int get todaySteps => days[todayKey]?.steps ?? 0;
+
+  // ───────────────────────── Алхам → Coin ─────────────────────────
+
+  /// Алхмын эх сурвалжаас (HealthKit, Health Connect, мэдрэгч, туршилтын товч)
+  /// ирсэн "тухайн өдрийн нийт алхам"-ыг хүлээж авна.
   ///
-  /// Буцаах утга: энэ удаад шинээр нээгдсэн тавилгууд.
-  List<Furniture> syncTodaySteps(int stepsToday) {
-    _rollDayIfNeeded();
-    if (stepsToday <= todaySteps) return const [];
-
+  /// Олон өдрийг зэрэг өгч болно: жишээ нь аппаа 3 хоног нээгээгүй байсан ч
+  /// утас алхмыг чинь тоолсон тул тэр өдрүүдийн coin, streak алдагдахгүй.
+  SyncResult syncSteps(Map<DateTime, int> stepsPerDay) {
+    final result = SyncResult();
     final unlockedBefore = _unlockedIds();
+    final today = DateTime(now().year, now().month, now().day);
 
-    final newSteps = stepsToday - todaySteps;
-    todaySteps = stepsToday;
-    totalSteps += newSteps;
+    final entries = stepsPerDay.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key)); // хуучин өдрөөс эхэлнэ
 
-    // Өнөөдөр нийт хэдэн coin авах эрхтэй вэ − аль хэдийн авсан нь = шинэ coin.
-    final earned = todaySteps ~/ stepsPerCoin - coinsRewardedToday;
-    if (earned > 0) {
-      coins += earned;
-      coinsRewardedToday += earned;
+    for (final e in entries) {
+      final day = DateTime(e.key.year, e.key.month, e.key.day);
+      if (day.isAfter(today) || today.difference(day).inDays >= historyDays) {
+        continue;
+      }
+      final rec = days.putIfAbsent(dateKey(day), DayRecord.new);
+      // Алхам буурахгүй. Ижил тоо дахин ирвэл юу ч хийхгүй.
+      if (e.value <= rec.steps) continue;
+
+      final added = e.value - rec.steps;
+      rec.steps = e.value;
+      totalSteps += added;
+      result.newSteps += added;
+
+      // Тухайн өдөр нийт авах ёстой coin − аль хэдийн авсан = шинэ coin.
+      final earned = rec.steps ~/ stepsPerCoin - rec.coinsFromSteps;
+      if (earned > 0) {
+        rec.coinsFromSteps += earned;
+        coins += earned;
+        result.stepCoins += earned;
+      }
+
+      // Өдрийн зорилгод анх хүрэхэд: bonus + streak bonus.
+      if (rec.goalReached && !rec.goalBonusGiven) {
+        rec.goalBonusGiven = true;
+        final streakThatDay = _streakEndingAt(day);
+        final sBonus =
+            math.min(streakThatDay * streakBonusPerDay, streakBonusCap);
+        coins += goalBonusCoins + sBonus;
+        result.goalBonus += goalBonusCoins;
+        result.streakBonus += sBonus;
+      }
     }
 
-    _updateStreak();
-    _save();
-    notifyListeners();
+    if (result.isEmpty) return result;
 
-    return furnitureCatalog
-        .where((f) =>
-            f.unlockType != UnlockType.none &&
-            !unlockedBefore.contains(f.id) &&
-            isUnlocked(f))
-        .toList();
+    _trimHistory();
+    result.unlocked.addAll(furnitureCatalog.where((f) =>
+        f.unlockType != UnlockType.none &&
+        !unlockedBefore.contains(f.id) &&
+        isUnlocked(f)));
+    _changed();
+    return result;
   }
 
-  /// Level 1: жинхэнэ алхам биш, товч дарж алхам нэмнэ.
-  List<Furniture> addFakeSteps(int steps) => syncTodaySteps(todaySteps + steps);
-
-  void _updateStreak() {
-    if (todaySteps < dailyStepGoal || lastGoalDate == todayDate) return;
-    final yesterday = _dateKey(_now().subtract(const Duration(days: 1)));
-    streak = lastGoalDate == yesterday ? streak + 1 : 1;
-    lastGoalDate = todayDate;
-  }
-
-  /// Шинэ өдөр эхэлсэн бол өдрийн тоолуурыг тэглэнэ.
-  void _rollDayIfNeeded() {
-    final today = _dateKey(_now());
-    if (today == todayDate) return;
-    todayDate = today;
-    todaySteps = 0;
-    coinsRewardedToday = 0;
-    final yesterday = _dateKey(_now().subtract(const Duration(days: 1)));
-    if (lastGoalDate != yesterday) streak = 0;
-    _save();
-  }
+  /// Туршилтын товч: өнөөдрийн алхамд нэмнэ.
+  SyncResult addFakeSteps(int steps) =>
+      syncSteps({now(): todaySteps + steps});
 
   /// Туршилтын товч: нэг өдөр урагшлуулна.
   void debugNextDay() {
     debugDayOffset++;
-    _rollDayIfNeeded();
-    notifyListeners();
+    _changed();
   }
+
+  // ───────────────────────── Streak ─────────────────────────
+
+  /// [day]-аар дуусах, зорилгодоо хүрсэн дараалсан өдрийн тоо.
+  int _streakEndingAt(DateTime day) {
+    var count = 0;
+    var d = day;
+    while (days[dateKey(d)]?.goalReached ?? false) {
+      count++;
+      d = d.subtract(const Duration(days: 1));
+    }
+    return count;
+  }
+
+  /// Одоогийн streak. Өнөөдөр зорилгодоо хүрээгүй ч өчигдөр хүрсэн бол
+  /// streak тасраагүй гэж үзнэ (өдөр дуустал хугацаа бий).
+  int get streak {
+    final today = now();
+    if (days[dateKey(today)]?.goalReached ?? false) {
+      return _streakEndingAt(today);
+    }
+    return _streakEndingAt(today.subtract(const Duration(days: 1)));
+  }
+
+  /// Сүүлийн [n] өдрийн алхам (хуучнаас шинэ рүү). Profile-ийн график.
+  List<MapEntry<DateTime, int>> recentDays(int n) {
+    final today = now();
+    return [
+      for (var i = n - 1; i >= 0; i--)
+        () {
+          final d = today.subtract(Duration(days: i));
+          return MapEntry(d, days[dateKey(d)]?.steps ?? 0);
+        }(),
+    ];
+  }
+
+  /// Зорилгодоо хүрсэн нийт өдөр.
+  int get activeDays => days.values.where((d) => d.goalReached).length;
 
   // ───────────────────────── Level / Score ─────────────────────────
 
@@ -155,8 +257,7 @@ class GameState extends ChangeNotifier {
     if (!canBuy(f)) return false;
     coins -= f.price;
     owned.add(f.id);
-    _save();
-    notifyListeners();
+    _changed();
     return true;
   }
 
@@ -173,14 +274,12 @@ class GameState extends ChangeNotifier {
   void placeItem(String furnitureId) {
     if (!owned.contains(furnitureId) || isPlaced(furnitureId)) return;
     placed.add(PlacedItem(furnitureId: furnitureId));
-    _save();
-    notifyListeners();
+    _changed();
   }
 
   void removeFromRoom(PlacedItem item) {
     placed.remove(item);
-    _save();
-    notifyListeners();
+    _changed();
   }
 
   /// Чирж байх үед дуудагдана — хадгалахгүй, зөвхөн дэлгэц шинэчилнэ.
@@ -192,72 +291,96 @@ class GameState extends ChangeNotifier {
 
   void rotateItem(PlacedItem item) {
     item.rotation = (item.rotation + 1) % 4;
-    _save();
-    notifyListeners();
+    _changed();
+  }
+
+  /// Тавилгын өнгө солих. null бол анхны өнгө рүү буцна.
+  void setItemColor(PlacedItem item, int? color) {
+    item.color = color;
+    _changed();
   }
 
   /// Чирж дууссаны дараа хадгална.
-  void commit() => _save();
+  void commit() => _changed();
 
   /// Бүгдийг эхнээс нь.
   void reset() {
     coins = 0;
     totalSteps = 0;
-    todaySteps = 0;
-    coinsRewardedToday = 0;
-    streak = 0;
-    lastGoalDate = null;
+    days.clear();
     debugDayOffset = 0;
-    todayDate = _dateKey(_now());
     owned.clear();
     placed.clear();
-    _save();
-    notifyListeners();
+    _changed();
   }
 
   // ───────────────────────── Хадгалах ─────────────────────────
 
-  DateTime _now() => _clock().add(Duration(days: debugDayOffset));
-
-  static String _dateKey(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   Set<String> _unlockedIds() =>
       furnitureCatalog.where(isUnlocked).map((f) => f.id).toSet();
 
-  Map<String, dynamic> _toJson() => {
+  void _trimHistory() {
+    final oldest = dateKey(now().subtract(const Duration(days: historyDays)));
+    days.removeWhere((k, _) => k.compareTo(oldest) < 0);
+  }
+
+  void _changed() {
+    updatedAt = DateTime.now().millisecondsSinceEpoch;
+    _prefs?.setString(_storageKey, jsonEncode(toJson()));
+    notifyListeners();
+  }
+
+  /// Бүх өгөгдлийг JSON болгох (утсан дээр болон cloud-д хадгалахад).
+  Map<String, dynamic> toJson() => {
         'coins': coins,
         'totalSteps': totalSteps,
-        'todaySteps': todaySteps,
-        'coinsRewardedToday': coinsRewardedToday,
-        'streak': streak,
-        'lastGoalDate': lastGoalDate,
-        'todayDate': todayDate,
+        'days': days.map((k, v) => MapEntry(k, v.toJson())),
         'debugDayOffset': debugDayOffset,
         'owned': owned.toList(),
         'placed': placed.map((p) => p.toJson()).toList(),
+        'updatedAt': updatedAt,
       };
 
-  void _fromJson(Map<String, dynamic> j) {
-    coins = j['coins'] as int? ?? 0;
-    totalSteps = j['totalSteps'] as int? ?? 0;
-    todaySteps = j['todaySteps'] as int? ?? 0;
-    coinsRewardedToday = j['coinsRewardedToday'] as int? ?? 0;
-    streak = j['streak'] as int? ?? 0;
-    lastGoalDate = j['lastGoalDate'] as String?;
-    todayDate = j['todayDate'] as String? ?? todayDate;
-    debugDayOffset = j['debugDayOffset'] as int? ?? 0;
+  void loadJson(Map<String, dynamic> j, {bool save = true}) {
+    coins = (j['coins'] as num?)?.toInt() ?? 0;
+    totalSteps = (j['totalSteps'] as num?)?.toInt() ?? 0;
+    days
+      ..clear()
+      ..addAll(((j['days'] as Map?) ?? {}).map((k, v) => MapEntry(
+          k as String, DayRecord.fromJson(Map<String, dynamic>.from(v as Map)))));
+    debugDayOffset = (j['debugDayOffset'] as num?)?.toInt() ?? 0;
     owned
       ..clear()
-      ..addAll((j['owned'] as List? ?? []).cast<String>());
+      ..addAll(((j['owned'] as List?) ?? []).cast<String>());
     placed
       ..clear()
-      ..addAll((j['placed'] as List? ?? [])
-          .map((e) => PlacedItem.fromJson(e as Map<String, dynamic>)));
+      ..addAll(((j['placed'] as List?) ?? []).map(
+          (e) => PlacedItem.fromJson(Map<String, dynamic>.from(e as Map))));
+    placed.removeWhere((p) => furnitureById(p.furnitureId) == null);
+    updatedAt = (j['updatedAt'] as num?)?.toInt() ?? 0;
+    if (save) {
+      _prefs?.setString(_storageKey, jsonEncode(toJson()));
+    }
+    notifyListeners();
   }
 
-  void _save() {
-    _prefs?.setString(_storageKey, jsonEncode(_toJson()));
+  /// Өмнөх (LEVEL 1) хувилбарын өгөгдлийг шинэ бүтэц рүү шилжүүлэх.
+  void _migrateV1(String? raw) {
+    if (raw == null) return;
+    final j = jsonDecode(raw) as Map<String, dynamic>;
+    final today = j['todayDate'] as String?;
+    final todaySteps = (j['todaySteps'] as num?)?.toInt() ?? 0;
+    loadJson({
+      ...j,
+      'days': {
+        if (today != null && todaySteps > 0)
+          today: {
+            's': todaySteps,
+            'c': (j['coinsRewardedToday'] as num?)?.toInt() ?? 0,
+            'g': todaySteps >= dailyStepGoal,
+          },
+      },
+    });
   }
 }
 

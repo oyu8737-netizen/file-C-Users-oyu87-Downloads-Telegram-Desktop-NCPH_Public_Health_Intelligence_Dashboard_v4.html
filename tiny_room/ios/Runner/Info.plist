@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Tiny Room reads your daily step count to give you coins for your room. / Tiny Room таны өдрийн алхмыг уншиж өрөөнд чинь coin өгнө.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Tiny Room does not write health data. / Tiny Room эрүүл мэндийн мэдээлэл бичихгүй.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Tiny Room counts your steps to give you coins. / Tiny Room алхмыг чинь тоолж coin өгнө.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
