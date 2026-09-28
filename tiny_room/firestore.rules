@@ -50,6 +50,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Бүртгэлийн жагсаалт (нэр, имэйл, огноо, төхөөрөмж).
+    // Хүн бүр зөвхөн өөрийнхөө мөрийг бичнэ; уншиж чадах нь зөвхөн admin.
+    match /registrations/{uid} {
+      allow create, update: if isMe(uid) && request.resource.data.uid == uid;
+      allow read: if isAdmin();
+      allow delete: if false;
+    }
+
     match /admins/{uid} {
       // Хүн бүр зөвхөн "би admin мөн үү" гэдгээ шалгана.
       // Admin-ийг зөвхөн Firebase Console-оос гараар нэмнэ.

@@ -1,10 +1,8 @@
-# 🏠 Tiny Room — v0.2
+# 🏠 Tiny Room — v0.3
 
 > Утсаа сэгсрэхэд биш, бодитоор алхахад өрөөнд чинь шинэ зүйл нэмэгддэг жижигхэн апп.
 
-📘 **Заавар (монголоор):**
-- [GUIDE_MN.md](GUIDE_MN.md) — компьютерээ бэлдэх, код хэрхэн зохион байгуулагдсан бэ (эхлэгчид)
-- [GUIDE_FIREBASE_MN.md](GUIDE_FIREBASE_MN.md) — **v0.2-ын шинэ функцүүд**, account/найзууд/статистикийг асаах, утсан дээр жинхэнэ алхам тоолуулах
+📚 **Хичээлүүд (монголоор): [docs/README.md](docs/README.md)** — компьютер бэлдэхээс апп хуваалцах хүртэл 7 хичээл.
 
 ## Функцүүд
 
@@ -15,10 +13,11 @@
 | 🛋️ | Дэлгүүр, цуглуулга, streak/level/алхмаар нээгдэх тавилга |
 | 🎨 | Өрөө засах: чирэх, эргүүлэх, 9 өнгөөр будах |
 | 📊 | Сүүлийн 7 хоногийн алхмын график, streak, level |
-| 🇲🇳🇬🇧 | Монгол / Англи хэл |
-| 👤 | Account (Firebase Auth), өрөө cloud-д хадгалагдана |
+| 🇲🇳🇬🇧🇨🇳 | Монгол / Англи / Хятад — хэл бүр өөрийн улсын өнгө, өрөөний загвар, хээтэй |
+| ☰ | Хураадаг цэс (компьютер: ☰ товч, утас: гүйлгэхэд нуугдана) |
+| 👤 | Account (Firebase Auth). Аль ч төхөөрөмж дээр нэвтрэхэд өрөө, coin сэргэж, тухайн төхөөрөмжийн алхамтай нэгтгэгдэнэ |
 | 👫 | Найзын кодоор найз нэмэх, найзын өрөөнд зочлох |
-| 📈 | Admin: нийт/идэвхтэй/шинэ хэрэглэгч, 7 хоногийн бүртгэл + Firebase Analytics |
+| 📈 | Admin: нийт/идэвхтэй/шинэ хэрэглэгч, сүүлийн бүртгэлүүд. Бүртгэл Firebase Console → Firestore → `registrations` дээр ч харагдана |
 
 Firebase тохируулаагүй бол апп **offline горимоор** ажиллана (account, найзууд идэвхгүй).
 
@@ -29,7 +28,7 @@ cd tiny_room
 flutter pub get
 flutter run -d chrome   # компьютер дээр туршилт (алхам = туршилтын товч)
 flutter run             # холбогдсон утсан дээр (жинхэнэ алхам)
-flutter test            # 15 автомат тест
+flutter test            # 19 автомат тест
 ```
 
 ## Файлын бүтэц
@@ -38,13 +37,15 @@ flutter test            # 15 автомат тест
 lib/
 ├── main.dart                   # Эхлэх цэг: өгөгдөл ачаалах, Firebase, алхам, 5 таб
 ├── firebase_options.dart       # `flutterfire configure` автоматаар солино
-├── l10n/strings.dart           # 🇲🇳🇬🇧 Бүх текст хоёр хэлээр
+├── l10n/
+│   ├── strings.dart            # 🇲🇳🇬🇧🇨🇳 Бүх текст гурван хэлээр
+│   └── app_lang.dart           # Хэл бүрийн улсын өнгө, цонх, чимэглэл, хээ
 ├── models/
 │   ├── furniture.dart          # Тавилгын каталог, будах өнгөнүүд
 │   └── placed_item.dart        # Өрөөнд тавьсан тавилга (x, y, эргэлт, өнгө)
 ├── state/
 │   ├── game_state.dart         # ❤️ Гол логик: өдөр бүрийн алхам → coin, bonus, streak
-│   ├── settings_state.dart     # Хэл
+│   ├── settings_state.dart     # Хэл, цэс хураасан эсэх
 │   └── app_services.dart       # Дэлгэцүүд Firebase/алхамд хандах
 ├── services/
 │   ├── step_service.dart       # HealthKit / Health Connect / мэдрэгч → GameState
@@ -64,6 +65,7 @@ lib/
     ├── profile_screen.dart     # Level, график, хэл, account
     └── admin_screen.dart       # Хэрэглэгчийн статистик
 firestore.rules                 # Firestore хамгаалалтын дүрэм
+docs/                           # 📚 7 хичээл
 test/                           # coin/streak/синк/UI тестүүд
 ```
 
@@ -74,5 +76,6 @@ users/{uid}                 name, friendCode, game{…}, level, streak, todaySte
                             totalSteps, lastActive, createdDay
 users/{uid}/friends/{fid}   name, addedAt
 friendCodes/{CODE}          uid, name
+registrations/{uid}         name, email, platform, createdAt, lastLoginDay ← admin
 admins/{uid}                role   ← Console-оос гараар
 ```

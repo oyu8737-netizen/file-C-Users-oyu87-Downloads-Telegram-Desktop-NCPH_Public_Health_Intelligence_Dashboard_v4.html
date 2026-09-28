@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../services/cloud_service.dart';
 import '../state/settings_state.dart';
 import '../widgets/bar_chart.dart';
@@ -17,6 +18,12 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   late Future<AdminStats> _stats = widget.cloud.adminStats();
+  late Future<List<Registration>> _regs = widget.cloud.recentRegistrations();
+
+  void _reload() => setState(() {
+        _stats = widget.cloud.adminStats();
+        _regs = widget.cloud.recentRegistrations();
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +37,7 @@ class _AdminScreenState extends State<AdminScreen> {
           IconButton(
             tooltip: s.refresh,
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                setState(() => _stats = widget.cloud.adminStats()),
+            onPressed: _reload,
           ),
         ],
       ),
@@ -98,6 +104,23 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: Text(s.recentSignups,
+                            style: theme.textTheme.titleMedium),
+                      ),
+                      _RegistrationList(future: _regs, s: s),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               Text(s.adminConsoleHint, style: theme.textTheme.bodySmall),
             ],
@@ -134,6 +157,67 @@ class _Tile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Сүүлд бүртгүүлсэн хүмүүс: нэр, имэйл, огноо, төхөөрөмж.
+class _RegistrationList extends StatelessWidget {
+  final Future<List<Registration>> future;
+  final S s;
+
+  const _RegistrationList({required this.future, required this.s});
+
+  static String _date(DateTime? d) => d == null
+      ? ''
+      : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} '
+          '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  static IconData _icon(String platform) => switch (platform) {
+        'android' => Icons.android,
+        'iOS' => Icons.phone_iphone,
+        'web' => Icons.language,
+        _ => Icons.devices,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Registration>>(
+      future: future,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snap.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('${s.networkError}\n${snap.error}'),
+          );
+        }
+        final regs = snap.data!;
+        if (regs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(s.noSignups),
+          );
+        }
+        return Column(
+          children: [
+            for (final r in regs)
+              ListTile(
+                dense: true,
+                leading: Icon(_icon(r.platform)),
+                title: Text(r.name.isEmpty ? r.email : r.name),
+                subtitle: Text(r.email),
+                trailing: Text(_date(r.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall),
+              ),
+          ],
+        );
+      },
     );
   }
 }

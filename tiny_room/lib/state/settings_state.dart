@@ -3,28 +3,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/strings.dart';
 
-/// Аппын тохиргоо: хэл, account-гүй үргэлжлүүлэх сонголт.
+/// Аппын тохиргоо: хэл, цэс дэлгэсэн эсэх, account-гүй үргэлжлүүлэх сонголт.
 class SettingsState extends ChangeNotifier {
   static const _langKey = 'tiny_room_lang';
   static const _authSkippedKey = 'tiny_room_auth_skipped';
+  static const _menuExpandedKey = 'tiny_room_menu_expanded';
 
   final SharedPreferences? _prefs;
-  bool mongolian;
+
+  /// 🇲🇳 / 🇬🇧 / 🇨🇳 — өнгө, өрөөний загвар ч мөн хамт солигдоно.
+  AppLang lang;
 
   /// Нэвтрэх дэлгэц дээр "Account-гүй үргэлжлүүлэх" дарсан эсэх.
   bool authSkipped;
 
-  SettingsState(
-      {SharedPreferences? prefs, this.mongolian = true, this.authSkipped = false})
-      : _prefs = prefs;
+  /// Том дэлгэц дээрх хажуугийн цэс дэлгэгдсэн (нэртэй) эсэх.
+  bool menuExpanded;
+
+  SettingsState({
+    SharedPreferences? prefs,
+    this.lang = AppLang.mn,
+    this.authSkipped = false,
+    this.menuExpanded = true,
+  }) : _prefs = prefs;
 
   static Future<SettingsState> load() async {
     final prefs = await SharedPreferences.getInstance();
     return SettingsState(
       prefs: prefs,
-      mongolian: (prefs.getString(_langKey) ?? 'mn') == 'mn',
+      lang: AppLang.fromCode(prefs.getString(_langKey)),
       authSkipped: prefs.getBool(_authSkippedKey) ?? false,
+      menuExpanded: prefs.getBool(_menuExpandedKey) ?? true,
     );
+  }
+
+  void setLang(AppLang value) {
+    if (value == lang) return;
+    lang = value;
+    _prefs?.setString(_langKey, value.code);
+    notifyListeners();
   }
 
   void setAuthSkipped(bool value) {
@@ -33,15 +50,15 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setMongolian(bool value) {
-    if (value == mongolian) return;
-    mongolian = value;
-    _prefs?.setString(_langKey, value ? 'mn' : 'en');
+  void toggleMenu() {
+    menuExpanded = !menuExpanded;
+    _prefs?.setBool(_menuExpandedKey, menuExpanded);
     notifyListeners();
   }
 }
 
-/// `S.of(context)` гэж бичээд одоогийн хэлээрх текстийг авна.
+/// `SettingsScope.strings(context)` → одоогийн хэлээрх текст.
+/// `SettingsScope.vibe(context)` → одоогийн хэлний улсын өнгө, чимэглэл.
 class SettingsScope extends InheritedNotifier<SettingsState> {
   const SettingsScope(
       {super.key, required SettingsState state, required super.child})
@@ -50,5 +67,7 @@ class SettingsScope extends InheritedNotifier<SettingsState> {
   static SettingsState of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<SettingsScope>()!.notifier!;
 
-  static S strings(BuildContext context) => S(of(context).mongolian);
+  static S strings(BuildContext context) => S(of(context).lang);
+
+  static LangVibe vibe(BuildContext context) => of(context).lang.vibe;
 }

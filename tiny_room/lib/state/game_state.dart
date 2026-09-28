@@ -364,6 +364,28 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Өөр төхөөрөмж дээр нэвтрэхэд: cloud-оос ирсэн өгөгдлийг үндэс болгоод,
+  /// энэ төхөөрөмж дээр байсан ч cloud-д хараахан ороогүй зүйлсийг нэмнэ.
+  ///
+  /// - Өрөө, coin, streak → cloud-ынх (таны account-ын жинхэнэ хувилбар)
+  /// - Энэ утсан дээр тоологдсон илүү алхам → нэмэгдэж, coin нь олгогдоно
+  ///   (өдөр бүрээр харьцуулдаг тул нэг алхамд хоёр удаа coin өгөхгүй)
+  /// - Энэ утсан дээр авсан тавилга → алга болохгүй
+  void mergeRemote(Map<String, dynamic> remote) {
+    final localSteps = {
+      for (final e in days.entries) DateTime.parse(e.key): e.value.steps
+    };
+    final localOwned = {...owned};
+    final localPlaced = [...placed];
+
+    loadJson(remote, save: false);
+
+    owned.addAll(localOwned);
+    if (placed.isEmpty) placed.addAll(localPlaced);
+    syncSteps(localSteps);
+    _changed();
+  }
+
   /// Өмнөх (LEVEL 1) хувилбарын өгөгдлийг шинэ бүтэц рүү шилжүүлэх.
   void _migrateV1(String? raw) {
     if (raw == null) return;

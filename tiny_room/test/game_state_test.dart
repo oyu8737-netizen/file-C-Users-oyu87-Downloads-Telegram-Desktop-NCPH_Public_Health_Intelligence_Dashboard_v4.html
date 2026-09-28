@@ -134,6 +134,42 @@ void main() {
     });
   });
 
+  group('Өөр төхөөрөмж дээр нэвтрэх', () {
+    test('Cloud-ын өрөө, coin сэргэж, энэ утасны илүү алхам нэмэгдэнэ', () {
+      // Хуучин утас: 2 өдөр алхаж, сандал авч тавьсан → cloud-д хадгалагдсан.
+      final oldPhone = GameState(clock: () => now);
+      oldPhone.syncSteps({now.subtract(const Duration(days: 1)): 6000});
+      oldPhone.syncSteps({now: 3000});
+      oldPhone.buy(furnitureById('chair')!);
+      oldPhone.placeItem('chair');
+      final cloud = jsonDecode(jsonEncode(oldPhone.toJson()))
+          as Map<String, dynamic>;
+
+      // Шинэ утас: нэвтрэхээс өмнө өнөөдөр 4,000 алхам тоолсон.
+      final newPhone = GameState(clock: () => now);
+      newPhone.syncSteps({now: 4000});
+      newPhone.mergeRemote(cloud);
+
+      expect(newPhone.placed.single.furnitureId, 'chair'); // өрөө сэргэв
+      expect(newPhone.owned, contains('chair'));
+      expect(newPhone.todaySteps, 4000); // илүү алхам нэмэгдэв
+      expect(newPhone.totalSteps, 6000 + 4000);
+      // coin = cloud-ынх + зөвхөн нэмэгдсэн 1,000 алхмын 10 coin
+      expect(newPhone.coins, oldPhone.coins + 10);
+      expect(newPhone.streak, 1);
+    });
+
+    test('Энэ утсан дээр cloud-оос бага алхам байвал давхар coin өгөхгүй', () {
+      final oldPhone = GameState(clock: () => now)..syncSteps({now: 8000});
+      final cloud = jsonDecode(jsonEncode(oldPhone.toJson()))
+          as Map<String, dynamic>;
+      final newPhone = GameState(clock: () => now)..syncSteps({now: 2000});
+      newPhone.mergeRemote(cloud);
+      expect(newPhone.todaySteps, 8000);
+      expect(newPhone.coins, oldPhone.coins);
+    });
+  });
+
   test('LEVEL 1 хувилбарын өгөгдөл шинэ хувилбар руу шилжинэ', () async {
     final today = GameState.dateKey(DateTime.now());
     SharedPreferences.setMockInitialValues({

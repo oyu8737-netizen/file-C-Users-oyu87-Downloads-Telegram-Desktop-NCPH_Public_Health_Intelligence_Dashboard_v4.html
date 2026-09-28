@@ -22,7 +22,7 @@ class CollectionGrid extends StatelessWidget {
         for (final f in furnitureCatalog)
           _CollectionCard(
             furniture: f,
-            name: f.name(s.mn),
+            name: f.name(s.lang),
             owned: game.isOwned(f),
           ),
       ],

@@ -22,6 +22,8 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const _Greeting(),
+          const SizedBox(height: 12),
           RoomView(items: game.placed, emptyText: s.roomEmpty),
           const SizedBox(height: 16),
           Card(
@@ -208,6 +210,46 @@ class _Stat extends StatelessWidget {
           Text(emoji, style: const TextStyle(fontSize: 24)),
           Text(value, style: Theme.of(context).textTheme.titleLarge),
           Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// Хэл бүрийн улсын өнгөөр мэндчилгээ: 🐎 Сайн байна уу! / ☕ Hello there! / 🏮 你好！
+class _Greeting extends StatelessWidget {
+  const _Greeting();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.strings(context);
+    final vibe = SettingsScope.vibe(context);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(colors: [
+          vibe.seed,
+          Color.lerp(vibe.seed, Colors.white, 0.35)!,
+        ]),
+      ),
+      child: Row(
+        children: [
+          Text(vibe.greetingEmoji, style: const TextStyle(fontSize: 32)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.greeting,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(s.greetingLine,
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white)),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -33,7 +33,7 @@ void showRewardSnack(
     s.stepsEarned(r.newSteps, r.stepCoins),
     if (r.goalBonus > 0) s.goalBonusText(r.goalBonus),
     if (r.streakBonus > 0) s.streakBonusText(r.streakBonus),
-    for (final f in r.unlocked) s.unlockedText(f.emoji, f.name(s.mn)),
+    for (final f in r.unlocked) s.unlockedText(f.emoji, f.name(s.lang)),
   ];
   messenger
     ..hideCurrentSnackBar()

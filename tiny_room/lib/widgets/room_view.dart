@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/furniture.dart';
 import '../models/placed_item.dart';
+import '../state/settings_state.dart';
 
 /// Өрөөг зурах widget.
 /// - Home болон найзын өрөөнд: зөвхөн харуулна.
@@ -32,6 +33,9 @@ class RoomView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vibe = SettingsScope.vibe(context);
+    const floorTop = 0.45; // хана 45%, шал 55%
+
     return AspectRatio(
       aspectRatio: 1,
       child: ClipRRect(
@@ -46,47 +50,54 @@ class RoomView extends StatelessWidget {
           return Stack(
             children: [
               // Хана
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFFFE8D6), Color(0xFFFFD6BA)],
-                    ),
-                  ),
-                ),
-              ),
+              Positioned.fill(child: _gradient(vibe.wall)),
               // Шал
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: size * 0.55,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFC89F7C), Color(0xFFA47551)],
-                    ),
-                  ),
+                height: size * (1 - floorTop),
+                child: _gradient(vibe.floor),
+              ),
+              // Хана, шалны заагт үндэсний хээ (Монгол алхан хээ / 回纹)
+              if (vibe.patternColor != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: size * floorTop - size * 0.035,
+                  height: size * 0.035,
+                  child: CustomPaint(
+                      painter: MeanderPainter(color: vibe.patternColor!)),
                 ),
-              ),
-              // Цонх
+              // Цонх — гадаа нь тухайн улсын байгаль
               Positioned(
-                left: size * 0.08,
-                top: size * 0.08,
-                child: Text('🪟', style: TextStyle(fontSize: size * 0.14)),
+                left: size * 0.07,
+                top: size * 0.07,
+                width: size * 0.26,
+                height: size * 0.22,
+                child: _Window(view: vibe.windowView),
               ),
+              // Хананы чимэглэл
+              for (final d in vibe.decor)
+                Positioned(
+                  left: d.x * size - d.size * size / 2,
+                  top: d.y * size,
+                  child: Text(d.emoji,
+                      style: TextStyle(fontSize: d.size * size)),
+                ),
               if (sorted.isEmpty && emptyText.isNotEmpty)
-                Center(
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: size * (floorTop + 0.12),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
                       emptyText,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.brown),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          shadows: [Shadow(blurRadius: 4, color: Colors.black45)]),
                     ),
                   ),
                 ),
@@ -97,6 +108,16 @@ class RoomView extends StatelessWidget {
       ),
     );
   }
+
+  static Widget _gradient(List<Color> colors) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: colors,
+          ),
+        ),
+      );
 
   Widget _buildItem(PlacedItem item, double size, double itemSize) {
     final f = furnitureById(item.furnitureId);
@@ -191,4 +212,74 @@ class FurnitureIcon extends StatelessWidget {
       0, 0, 0, 1, 0, // тунгалаг байдал өөрчлөгдөхгүй
     ]);
   }
+}
+
+/// Цонх: цагаан хүрээ, загалмай, гадаа нь [view] (уул, бороо, хулс...).
+class _Window extends StatelessWidget {
+  final String view;
+
+  const _Window({required this.view});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      final w = box.maxWidth;
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF81D4FA), Color(0xFFE1F5FE)],
+          ),
+          border: Border.all(color: Colors.white, width: w * 0.06),
+          borderRadius: BorderRadius.circular(w * 0.06),
+          boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black26)],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(view, style: TextStyle(fontSize: w * 0.42)),
+            // Цонхны загалмай
+            Container(width: w * 0.04, color: Colors.white),
+            Container(height: w * 0.04, color: Colors.white),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// Давтагдах "түлхүүр" хээ — Монголын алхан хээ, Хятадын 回纹 хоёулаа
+/// энэ хэлбэртэй. Нэг нүд = өндөртэйгөө тэнцүү квадрат.
+class MeanderPainter extends CustomPainter {
+  final Color color;
+
+  const MeanderPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.12
+      ..strokeCap = StrokeCap.square;
+    final path = Path();
+    for (var x = 0.0; x < size.width; x += h) {
+      path
+        ..moveTo(x, h * 0.94)
+        ..lineTo(x, h * 0.06)
+        ..lineTo(x + h * 0.8, h * 0.06)
+        ..lineTo(x + h * 0.8, h * 0.66)
+        ..lineTo(x + h * 0.36, h * 0.66)
+        ..lineTo(x + h * 0.36, h * 0.36);
+    }
+    path
+      ..moveTo(0, h * 0.94)
+      ..lineTo(size.width, h * 0.94);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(MeanderPainter old) => old.color != color;
 }

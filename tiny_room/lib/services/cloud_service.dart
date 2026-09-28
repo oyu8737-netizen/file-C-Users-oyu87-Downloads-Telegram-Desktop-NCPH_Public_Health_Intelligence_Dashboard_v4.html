@@ -16,6 +16,7 @@ import '../state/game_state.dart';
 //   users/{uid}                  ← нэг хэрэглэгч: нэр, найзын код, өрөө, алхам
 //   users/{uid}/friends/{fid}    ← найзуудын жагсаалт (хоёр талдаа бичигдэнэ)
 //   friendCodes/{CODE}           ← найзын код → uid (найз хайхад)
+//   registrations/{uid}          ← бүртгэл: нэр, имэйл, огноо, төхөөрөмж (admin уншина)
 //   admins/{uid}                 ← энд байгаа хүн Admin статистик харна
 //
 // Хэн юуг унших/бичих эрхтэйг `firestore.rules` файл тодорхойлно.
@@ -52,6 +53,23 @@ class FriendRoom {
 }
 
 enum AddFriendResult { added, notFound, self, already }
+
+/// Admin хуудсанд харуулах нэг бүртгэл.
+class Registration {
+  final String name;
+  final String email;
+  final String platform;
+  final DateTime? createdAt;
+  final String? lastLoginDay;
+
+  const Registration({
+    required this.name,
+    required this.email,
+    required this.platform,
+    this.createdAt,
+    this.lastLoginDay,
+  });
+}
 
 /// Admin хуудсанд харуулах статистик.
 class AdminStats {
@@ -179,6 +197,7 @@ class CloudService extends ChangeNotifier {
     if (data != null && data['friendCode'] is String) {
       profile = UserProfile(
           name: data['name'] as String? ?? '', friendCode: data['friendCode']);
+      _recordRegistration(u, profile!.name, isNew: false);
       return;
     }
     final displayName = (name?.isNotEmpty ?? false)
@@ -195,6 +214,25 @@ class CloudService extends ChangeNotifier {
       'lastActive': _today(),
     }, SetOptions(merge: true));
     profile = UserProfile(name: displayName, friendCode: code);
+    _recordRegistration(u, displayName, isNew: true);
+  }
+
+  /// `registrations/{uid}` — бүртгүүлсэн хүн бүрийн нэр, имэйл, огноо,
+  /// төхөөрөмж. Firebase Console → Firestore → registrations хэсэгт хүснэгт
+  /// хэлбэрээр харагдана. Зөвхөн admin (болон Console) уншина.
+  void _recordRegistration(User u, String name, {required bool isNew}) {
+    _db.collection('registrations').doc(u.uid).set({
+      'uid': u.uid,
+      'name': name,
+      'email': u.email,
+      'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+      'lastLoginAt': FieldValue.serverTimestamp(),
+      'lastLoginDay': _today(),
+      if (isNew) 'createdAt': FieldValue.serverTimestamp(),
+      if (isNew) 'createdDay': _today(),
+    }, SetOptions(merge: true)).catchError((Object e) {
+      debugPrint('registration: $e');
+    });
   }
 
   /// Бусадтай давхцахгүй 6 тэмдэгттэй код (андуурагддаг 0/O, 1/I-г хассан).
@@ -346,6 +384,25 @@ class CloudService extends ChangeNotifier {
           MapEntry(dayKeys[i], results[2 + i])
       ],
     );
+  }
+
+  /// Хамгийн сүүлд бүртгүүлсэн [limit] хүн (шинэ нь эхэндээ).
+  Future<List<Registration>> recentRegistrations({int limit = 30}) async {
+    final snap = await _db
+        .collection('registrations')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+    return [
+      for (final d in snap.docs)
+        Registration(
+          name: d.data()['name'] as String? ?? '',
+          email: d.data()['email'] as String? ?? '',
+          platform: d.data()['platform'] as String? ?? '',
+          createdAt: (d.data()['createdAt'] as Timestamp?)?.toDate(),
+          lastLoginDay: d.data()['lastLoginDay'] as String?,
+        ),
+    ];
   }
 
   // ───────────────────────── Analytics ─────────────────────────

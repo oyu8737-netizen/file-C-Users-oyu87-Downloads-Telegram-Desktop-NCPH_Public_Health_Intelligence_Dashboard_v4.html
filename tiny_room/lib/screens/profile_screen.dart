@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../services/step_service.dart';
 import '../state/app_services.dart';
 import '../state/game_state.dart';
@@ -131,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 ListTile(
                   leading: const Text('🪙', style: TextStyle(fontSize: 24)),
-                  title: Text('${game.coins} coin'),
+                  title: Text(s.coins(game.coins)),
                 ),
               ],
             ),
@@ -150,13 +151,25 @@ class ProfileScreen extends StatelessWidget {
           // ── Хэл ──
           Text(s.language, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(value: true, label: Text('🇲🇳 Монгол')),
-              ButtonSegment(value: false, label: Text('🇬🇧 English')),
+          SegmentedButton<AppLang>(
+            segments: [
+              for (final l in AppLang.values)
+                ButtonSegment(value: l, label: Text('${l.flag} ${l.label}')),
             ],
-            selected: {settings.mongolian},
-            onSelectionChanged: (v) => settings.setMongolian(v.first),
+            selected: {settings.lang},
+            onSelectionChanged: (v) => settings.setLang(v.first),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(s.languageVibeHint, style: theme.textTheme.bodySmall),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(s.menuLabels),
+            subtitle: Text(s.menuLabelsHint),
+            value: settings.menuExpanded,
+            onChanged: (_) => settings.toggleMenu(),
           ),
 
           // ── Туршилт (зөвхөн хөгжүүлэлт эсвэл вэб дээр) ──

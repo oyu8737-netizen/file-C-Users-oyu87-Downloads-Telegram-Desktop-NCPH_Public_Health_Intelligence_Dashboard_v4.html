@@ -106,7 +106,7 @@ class _ShopTile extends StatelessWidget {
                 ScaffoldMessenger.of(context)
                   ..hideCurrentSnackBar()
                   ..showSnackBar(SnackBar(
-                    content: Text(s.bought(f.emoji, f.name(s.mn))),
+                    content: Text(s.bought(f.emoji, f.name(s.lang))),
                   ));
               }
             : null,
@@ -120,9 +120,9 @@ class _ShopTile extends StatelessWidget {
           opacity: unlocked ? 1 : 0.35,
           child: Text(f.emoji, style: const TextStyle(fontSize: 32)),
         ),
-        title: Text(f.name(s.mn)),
+        title: Text(f.name(s.lang)),
         subtitle: Text(
-          unlocked ? '${f.price} coin' : '🔒 ${s.requirement(f)}',
+          unlocked ? s.coins(f.price) : '🔒 ${s.requirement(f)}',
         ),
         trailing: trailing,
       ),

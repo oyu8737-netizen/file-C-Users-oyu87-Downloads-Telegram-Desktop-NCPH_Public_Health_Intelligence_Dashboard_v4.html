@@ -45,7 +45,7 @@ class _EditorScreenState extends State<EditorScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('${selectedF.emoji} ${selectedF.name(s.mn)}',
+                Text('${selectedF.emoji} ${selectedF.name(s.lang)}',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(width: 12),
                 IconButton.filledTonal(
@@ -87,7 +87,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 for (final f in inventory)
                   ActionChip(
                     avatar: Text(f.emoji),
-                    label: Text(f.name(s.mn)),
+                    label: Text(f.name(s.lang)),
                     onPressed: () {
                       game.placeItem(f.id);
                       setState(() => _selected = game.placed.last);

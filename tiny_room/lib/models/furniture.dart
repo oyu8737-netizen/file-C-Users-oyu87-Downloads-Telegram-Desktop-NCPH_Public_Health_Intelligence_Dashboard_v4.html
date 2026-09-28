@@ -1,3 +1,5 @@
+import '../l10n/app_lang.dart';
+
 /// Тавилга нээгдэх нэмэлт нөхцөл (үнээс гадна).
 enum UnlockType { none, streak, totalSteps, level }
 
@@ -5,6 +7,7 @@ class Furniture {
   final String id;
   final String nameMn;
   final String nameEn;
+  final String nameZh;
   final String emoji;
   final int price;
   final UnlockType unlockType;
@@ -14,28 +17,34 @@ class Furniture {
     required this.id,
     required this.nameMn,
     required this.nameEn,
+    required this.nameZh,
     required this.emoji,
     required this.price,
     this.unlockType = UnlockType.none,
     this.unlockValue = 0,
   });
 
-  String name(bool mongolian) => mongolian ? nameMn : nameEn;
+  String name(AppLang lang) => switch (lang) {
+        AppLang.mn => nameMn,
+        AppLang.en => nameEn,
+        AppLang.zh => nameZh,
+      };
 }
 
 /// Дэлгүүрт байгаа бүх тавилга.
 /// Шинэ тавилга нэмэх бол энд нэг мөр нэмэхэд л хангалттай.
 const List<Furniture> furnitureCatalog = [
-  Furniture(id: 'chair', nameMn: 'Сандал', nameEn: 'Chair', emoji: '🪑', price: 100),
-  Furniture(id: 'picture', nameMn: 'Зураг', nameEn: 'Picture', emoji: '🖼️', price: 120),
-  Furniture(id: 'plant', nameMn: 'Ургамал', nameEn: 'Plant', emoji: '🪴', price: 150),
-  Furniture(id: 'lamp', nameMn: 'Гэрэл', nameEn: 'Lamp', emoji: '💡', price: 200),
-  Furniture(id: 'table', nameMn: 'Ширээ', nameEn: 'Table', emoji: '🪵', price: 250),
-  Furniture(id: 'teddy', nameMn: 'Баавгай', nameEn: 'Teddy', emoji: '🧸', price: 180),
+  Furniture(id: 'chair', nameMn: 'Сандал', nameEn: 'Chair', nameZh: '椅子', emoji: '🪑', price: 100),
+  Furniture(id: 'picture', nameMn: 'Зураг', nameEn: 'Picture', nameZh: '挂画', emoji: '🖼️', price: 120),
+  Furniture(id: 'plant', nameMn: 'Ургамал', nameEn: 'Plant', nameZh: '盆栽', emoji: '🪴', price: 150),
+  Furniture(id: 'lamp', nameMn: 'Гэрэл', nameEn: 'Lamp', nameZh: '台灯', emoji: '💡', price: 200),
+  Furniture(id: 'table', nameMn: 'Ширээ', nameEn: 'Table', nameZh: '桌子', emoji: '🪵', price: 250),
+  Furniture(id: 'teddy', nameMn: 'Баавгай', nameEn: 'Teddy', nameZh: '泰迪熊', emoji: '🧸', price: 180),
   Furniture(
     id: 'sofa',
     nameMn: 'Буйдан',
     nameEn: 'Sofa',
+    nameZh: '沙发',
     emoji: '🛋️',
     price: 300,
     unlockType: UnlockType.streak,
@@ -45,6 +54,7 @@ const List<Furniture> furnitureCatalog = [
     id: 'bookshelf',
     nameMn: 'Номын тавиур',
     nameEn: 'Bookshelf',
+    nameZh: '书架',
     emoji: '📚',
     price: 400,
     unlockType: UnlockType.level,
@@ -54,6 +64,7 @@ const List<Furniture> furnitureCatalog = [
     id: 'bed',
     nameMn: 'Ор',
     nameEn: 'Bed',
+    nameZh: '床',
     emoji: '🛏️',
     price: 500,
     unlockType: UnlockType.totalSteps,
@@ -63,6 +74,7 @@ const List<Furniture> furnitureCatalog = [
     id: 'aquarium',
     nameMn: 'Аквариум',
     nameEn: 'Aquarium',
+    nameZh: '鱼缸',
     emoji: '🐠',
     price: 800,
     unlockType: UnlockType.streak,

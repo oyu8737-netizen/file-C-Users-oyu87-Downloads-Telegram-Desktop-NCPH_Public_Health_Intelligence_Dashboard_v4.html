@@ -99,16 +99,21 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () =>
-                            settings.setMongolian(!settings.mongolian),
-                        child: Text(settings.mongolian ? 'English' : 'Монгол'),
-                      ),
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 4,
+                      children: [
+                        for (final l in AppLang.values)
+                          ChoiceChip(
+                            label: Text('${l.flag} ${l.label}'),
+                            selected: settings.lang == l,
+                            onSelected: (_) => settings.setLang(l),
+                          ),
+                      ],
                     ),
-                    const Text('🏠', textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 64)),
+                    Text('🏠${settings.lang.vibe.greetingEmoji}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 56)),
                     Text('Tiny Room',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineMedium),
