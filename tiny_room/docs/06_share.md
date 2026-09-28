@@ -8,34 +8,53 @@
 
 | Арга | Хэнд | Жинхэнэ алхам | Үнэ | Хэцүү |
 |---|---|---|---|---|
-| **A. Вэб холбоос** | Хэн ч (iPhone, Android, компьютер) | ❌ | Үнэгүй | ⭐ |
+| **A. Вэб холбоос — Firebase** ⭐ зөвлөмж | Хэн ч (iPhone, Android, компьютер) | ❌ | Үнэгүй | ⭐ |
+| A2. Вэб холбоос — Netlify | Хэн ч | ❌ | Үнэгүй | ⭐ |
 | **B. APK файл** | Android | ✅ | Үнэгүй | ⭐⭐ |
 | **C. Апп дэлгүүр** | Хэн ч | ✅ | $25 / $99 жилд | ⭐⭐⭐ |
 
 ---
 
-## A. Вэб холбоос
+## A. Вэб холбоос — Firebase дээр ⭐
 
-**1. Бүтээх** 💻
+Tiny Room таны Firebase төсөл дээр **өөрийн хаягтай** байрлана:
+
+### 👉 https://tiny-room-e0434.web.app
+
+**Давуу тал:** account, найз, статистик бүгд нэг дор. Домэйн зөвшөөрөх шаардлагагүй (Firebase өөрийн хаягаа автоматаар зөвшөөрдөг). Firestore дүрэм ч **хамт** байршина.
+
+**Өмнөх нөхцөл:** [Хичээл 4](04_firebase.md)-ийн 4.3 (Firestore үүсгэх), 4.4 (хэрэгсэл), 4.5 (`firebase login` + `flutterfire configure`).
+
+**Байршуулах / шинэчлэх** — PowerShell дээр нэг мөр:
 ```powershell
-cd $HOME\tiny-room-repo\tiny_room; flutter build web; explorer build
+cd $HOME\tiny-room-repo; git stash -u; git pull; cd tiny_room; flutter pub get; flutter build web; firebase deploy --only hosting,firestore:rules
 ```
 
-**2. Байршуулах** 🌐
-1. **https://app.netlify.com/drop** → GitHub-аар нэвтэрнэ.
-2. Нээгдсэн цонхноос **`web`** хавтсыг чирж Netlify дээр тавина.
-3. `https://xxxx.netlify.app` холбоос гарна → **Site configuration → Change site name** → `tiny-room-oyu` гэх мэт.
+| Хэсэг | Юу хийнэ |
+|---|---|
+| `git pull` | Хамгийн сүүлийн кодыг татна |
+| `flutter build web` | Вэб хувилбарыг `build\web` хавтсанд бүтээнэ |
+| `firebase deploy --only hosting` | Тэр хавтсыг `tiny-room-e0434.web.app` руу байршуулна |
+| `firestore:rules` | `firestore.rules` дүрмийг Firestore руу **автоматаар** тавина (гараар хуулах шаардлагагүй) |
 
-**3. Firebase-д зөвшөөрөх** 🌐 (заавал!)
-👉 https://console.firebase.google.com/project/tiny-room-e0434/authentication/settings → **Authorized domains** → **Add domain** → `tiny-room-oyu.netlify.app`
+✅ Сүүлд `Hosting URL: https://tiny-room-e0434.web.app` гэж гарвал болсон. Холбоосыг нээхэд **Tiny Room** гарна.
 
-> Нэмэхгүй бол вэб дээр нэвтрэхэд `unauthorized-domain` алдаа гарна.
+> Тохиргоо нь `firebase.json` болон `.firebaserc` файлд бэлэн (төсөл: `tiny-room-e0434`).
+> `Error: Failed to get Firebase project` гарвал `firebase login`-оо дахин хийнэ.
 
-**4. Хуваалцах** — холбоосоо Messenger, Telegram-аар илгээнэ. Хүлээн авагч:
+**Хуваалцах** — холбоосоо Messenger, Telegram-аар илгээнэ. Хүлээн авагч:
 - **iPhone:** Safari → **⬆️ Хуваалцах → Add to Home Screen**
 - **Android:** Chrome → **⋮ → Add to Home screen**
 
-**Шинэчлэх:** 1-р алхам → Netlify → **Deploys** → шинэ `web` хавтсаа чирнэ. Холбоос өөрчлөгдөхгүй.
+---
+
+## A2. Вэб холбоос — Netlify (өөр сонголт)
+
+```powershell
+cd $HOME\tiny-room-repo\tiny_room; flutter build web; explorer build
+```
+1. **https://app.netlify.com/drop** → `web` хавтсыг чирч тавина → `xxxx.netlify.app` холбоос.
+2. **Заавал:** [Authentication → Settings → Authorized domains](https://console.firebase.google.com/project/tiny-room-e0434/authentication/settings) → **Add domain** → `xxxx.netlify.app` (эс тэгвэл `unauthorized-domain` алдаа).
 
 ---
 

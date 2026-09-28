@@ -31,7 +31,9 @@
 | `Firebase тохируулаагүй тул offline горим` | `flutterfire configure` хийгээгүй | [Хичээл 4.5](04_firebase.md) |
 | `(operation-not-allowed)` | Email/Password асаагаагүй | [Хичээл 4.2](04_firebase.md) |
 | `permission-denied` | Дүрэм тавиагүй / хуучин | [Хичээл 4.3](04_firebase.md) → дүрмийг **дахин Publish** |
-| `unauthorized-domain` | Вэб домэйн нэмээгүй | [Хичээл 6-A.3](06_share.md) |
+| `unauthorized-domain` | Netlify домэйн нэмээгүй | [Хичээл 6-A2](06_share.md), эсвэл Firebase хаяг (`tiny-room-e0434.web.app`) ашигла |
+| `Failed to get Firebase project` / `not authorized` | `firebase login` хийгээгүй | `firebase login` → дахин `firebase deploy` |
+| Вэб хаяг дээр "Site Not Found" / Firebase-ийн өөр хуудас | Байршуулаагүй / хуучин | [Хичээл 6-A](06_share.md)-ийн нэг мөр тушаалыг ажиллуул |
 | Admin статистик харагдахгүй | admins баримтын UID таараагүй | [Хичээл 4.6](04_firebase.md) — UID-ийг дахин хуулж шалга |
 | `'flutterfire' / 'firebase' is not recognized` | PATH | PowerShell-ээ шинээр нээ, болохгүй бол [Хичээл 4.4](04_firebase.md) |
 

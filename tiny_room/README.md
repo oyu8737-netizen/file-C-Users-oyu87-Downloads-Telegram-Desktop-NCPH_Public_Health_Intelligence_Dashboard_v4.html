@@ -65,6 +65,7 @@ lib/
     ├── profile_screen.dart     # Level, график, хэл, account
     └── admin_screen.dart       # Хэрэглэгчийн статистик
 firestore.rules                 # Firestore хамгаалалтын дүрэм
+firebase.json, .firebaserc      # Firebase Hosting (tiny-room-e0434.web.app) + дүрэм байршуулах
 docs/                           # 📚 7 хичээл
 test/                           # coin/streak/синк/UI тестүүд
 ```
